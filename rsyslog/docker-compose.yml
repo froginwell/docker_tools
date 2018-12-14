@@ -1,0 +1,37 @@
+version: "3.7"
+
+services:
+  rsyslog:
+    image: "froginwell/rsyslog:1.0.0"
+    ports:
+      - "3456:514/tcp"
+    volumes:
+      - "rsyslog-data:/var/log"
+    networks:
+      - "default_overlay"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.rsyslog == true
+      restart_policy:
+        condition: "any"
+        delay: "30s"
+        window: "10s"
+      rollback_config:
+        parallelism: 1
+        delay: "30s"
+        monitor: "10s"
+        order: "start-first"
+      update_config:
+        parallelism: 1
+        delay: "30s"
+        failure_action: "rollback"
+        monitor: "10s"
+        order: "start-first"
+
+volumes:
+  rsyslog-data:
+
+networks:
+  default_overlay:
+    external: true

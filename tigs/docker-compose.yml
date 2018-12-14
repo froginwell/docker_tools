@@ -1,0 +1,170 @@
+version: "3.7"
+
+services:
+  influxdb:
+    image: "influxdb:1.7.1-alpine"
+    ports:
+      - "8086:8086/tcp"
+      - "2003:2003/tcp"
+    networks:
+      - "default_overlay"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://127.0.0.1:3456"
+        syslog-facility: "local0"
+        syslog-format: "rfc5424"
+        tag: "influxdb"
+    configs:
+      - source: "influxdb.conf"
+        target: "/etc/influxdb/influxdb.conf"
+    volumes:
+      - "influxdb-data:/var/lib/influxdb"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.influxdb == true
+      restart_policy:
+        condition: "any"
+        delay: "30s"
+        window: "10s"
+      rollback_config:
+        parallelism: 1
+        delay: "30s"
+        monitor: "10s"
+        order: "start-first"
+      update_config:
+        parallelism: 1
+        delay: "30s"
+        failure_action: "rollback"
+        monitor: "10s"
+        order: "start-first"
+  grafana:
+    image: "grafana/grafana:5.4.0"
+    ports:
+      - "3000:3000/tcp"
+    networks:
+      - "default_overlay"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://127.0.0.1:3456"
+        syslog-facility: "local0"
+        syslog-format: "rfc5424"
+        tag: "grafana"
+    volumes:
+      - "grafana-data:/var/lib/grafana"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.grafana == true
+      restart_policy:
+        condition: "any"
+        delay: "30s"
+        window: "10s"
+      rollback_config:
+        parallelism: 1
+        delay: "30s"
+        monitor: "10s"
+        order: "start-first"
+      update_config:
+        parallelism: 1
+        delay: "30s"
+        failure_action: "rollback"
+        monitor: "10s"
+        order: "start-first"
+  statsd:
+    image: "froginwell/statsd:1.0.0"
+    ports:
+      - "8125:8125"
+      - "8126:8126/udp"
+    networks:
+      - "default_overlay"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://127.0.0.1:3456"
+        syslog-facility: "local0"
+        syslog-format: "rfc5424"
+        tag: "statsd"
+    configs:
+      - source: "statsd.conf"
+        target: "/etc/statsite/statsite.conf"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.statsd == true
+      restart_policy:
+        condition: "any"
+        delay: "30s"
+        window: "10s"
+      rollback_config:
+        parallelism: 1
+        delay: "30s"
+        monitor: "10s"
+        order: "start-first"
+      update_config:
+        parallelism: 1
+        delay: "30s"
+        failure_action: "rollback"
+        monitor: "10s"
+        order: "start-first"
+  telegraf:
+    image: "telegraf:1.9.0-alpine"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://127.0.0.1:3456"
+        syslog-facility: "local0"
+        syslog-format: "rfc5424"
+        tag: "telegraf"
+    configs:
+      - source: "telegraf.conf"
+        target: "/etc/telegraf/telegraf.conf"
+    environment:
+      HOST_PROC: "/host/proc"
+      HOST_SYS: "/host/sys"
+      HOST_ETC: "/host/etc"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/proc:/host/proc:ro"
+      - "/sys:/host/sys:ro"
+      - "/etc:/host/etc:ro"
+      - "/var/run/utmp:/var/run/utmp:ro"
+    networks:
+      - "host"
+    deploy:
+      mode: "global"
+      restart_policy:
+        condition: "any"
+        delay: "30s"
+        window: "10s"
+      rollback_config:
+        parallelism: 1
+        delay: "30s"
+        monitor: "10s"
+        order: "start-first"
+      update_config:
+        parallelism: 1
+        delay: "30s"
+        failure_action: "rollback"
+        monitor: "10s"
+        order: "start-first"
+
+configs:
+  influxdb.conf:
+    file: "./influxdb/influxdb.conf"
+  statsd.conf:
+    file: "./statsd/statsd.conf"
+  telegraf.conf:
+    file: "./telegraf/telegraf.conf"
+
+volumes:
+  influxdb-data:
+  grafana-data:
+
+networks:
+  default_overlay:
+    external: true
+  host:
+    external: true
